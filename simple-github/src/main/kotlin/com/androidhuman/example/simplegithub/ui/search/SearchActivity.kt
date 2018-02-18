@@ -13,7 +13,10 @@ import com.androidhuman.example.simplegithub.api.GithubApi
 import com.androidhuman.example.simplegithub.api.model.GithubRepo
 import com.androidhuman.example.simplegithub.api.model.RepoSearchResponse
 import com.androidhuman.example.simplegithub.api.provideGithubApi
+import com.androidhuman.example.simplegithub.extensions.plusAssign
 import com.androidhuman.example.simplegithub.ui.repo.RepositoryActivity
+import com.jakewharton.rxbinding2.support.v7.widget.queryTextChangeEvents
+import com.jakewharton.rxbinding2.widget.RxSearchView
 import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
@@ -33,8 +36,9 @@ class SearchActivity : AppCompatActivity(), SearchAdapter.ItemClickListener {
 
     internal val api: GithubApi by lazy { provideGithubApi(this) }
 
-//    internal var searchCall: Call<RepoSearchResponse>? = null
+    //    internal var searchCall: Call<RepoSearchResponse>? = null
     internal var disposable = CompositeDisposable()
+    internal val viewDisposable = CompositeDisposable()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,23 +52,22 @@ class SearchActivity : AppCompatActivity(), SearchAdapter.ItemClickListener {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.menu_activity_search, menu)
-        menuSearch = menu.findItem(R.id.menu_activity_search_query)
 
-        searchView = (menuSearch.actionView as SearchView).apply {
-            setOnQueryTextListener(object : SearchView.OnQueryTextListener {
-                override fun onQueryTextSubmit(query: String): Boolean {
+        menuSearch = menu.findItem(R.id.menu_activity_search_query)
+        searchView = (menuSearch.actionView as SearchView)
+
+        viewDisposable += searchView.queryTextChangeEvents()
+                .filter { it.isSubmitted }
+                .map { it.queryText() }
+                .filter { it.isNotEmpty() }
+                .map { it.toString() }
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe { query ->
                     updateTitle(query)
                     hideSoftKeyboard()
                     collapseSearchView()
                     searchRepository(query)
-                    return true
                 }
-
-                override fun onQueryTextChange(newText: String): Boolean {
-                    return false
-                }
-            })
-        }
 
         menuSearch.expandActionView()
 
@@ -83,6 +86,10 @@ class SearchActivity : AppCompatActivity(), SearchAdapter.ItemClickListener {
         super.onStop()
 //        searchCall?.run { cancel() }
         disposable.clear()
+        // 화면이 꺼지거나 다른 액티비티를 호출하여 액티비티가 화면에서 사리지는 경우에는 해제하지 않
+        if(isFinishing){
+            viewDisposable.clear()
+        }
     }
 
     override fun onItemClick(repository: GithubRepo) {
@@ -92,11 +99,11 @@ class SearchActivity : AppCompatActivity(), SearchAdapter.ItemClickListener {
     }
 
     private fun searchRepository(query: String) {
-        disposable.add(api.searchRepository(query)
+        disposable += api.searchRepository(query)
                 .flatMap {
-                    if ( 0 == it.totalCount) {
+                    if (0 == it.totalCount) {
                         Observable.error(IllegalStateException("No search"))
-                    }else{
+                    } else {
                         Observable.just(it.items)
                     }
                 }
@@ -107,16 +114,15 @@ class SearchActivity : AppCompatActivity(), SearchAdapter.ItemClickListener {
                     showProgress()
                 }
                 .doOnTerminate { hideProgress() }
-                .subscribe({
-                    items ->
-                    with(adapter){
+                .subscribe({ items ->
+                    with(adapter) {
                         setItems(items)
                         notifyDataSetChanged()
                     }
-                }){
+                }) {
                     showError(it.message)
                 }
-        )
+
 //        clearResults()
 //        hideError()
 //        showProgress()

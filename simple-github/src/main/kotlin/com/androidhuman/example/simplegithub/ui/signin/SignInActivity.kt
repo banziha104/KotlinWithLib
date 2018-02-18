@@ -11,6 +11,7 @@ import com.androidhuman.example.simplegithub.R
 import com.androidhuman.example.simplegithub.api.model.GithubAccessToken
 import com.androidhuman.example.simplegithub.api.provideAuthApi
 import com.androidhuman.example.simplegithub.data.AuthTokenProvider
+import com.androidhuman.example.simplegithub.extensions.plusAssign
 import com.androidhuman.example.simplegithub.ui.main.MainActivity
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
@@ -68,12 +69,12 @@ class SignInActivity : AppCompatActivity() {
         super.onStop()
 //        accessTokenCall?.run { cancel() }
         // 관리하고 있던 모든 객체를 해제
-       disposable.clear()
+        disposable.clear()
     }
 
     private fun getAccessToken(code: String) {
         // disposable에 등록
-        disposable.add(api.getAccessToken(BuildConfig.GITHUB_CLIENT_ID,BuildConfig.GITHUB_CLIENT_SECRET,code)
+        disposable += api.getAccessToken(BuildConfig.GITHUB_CLIENT_ID, BuildConfig.GITHUB_CLIENT_SECRET, code)
                 // 엑세스 토큰으로 변경
                 .map { it.accessToken }
                 // 이후작업은 메인 스레드에서 처리
@@ -83,14 +84,13 @@ class SignInActivity : AppCompatActivity() {
                 // 스트림 종료시
                 .doOnTerminate { hideProgress() }
                 // 옵서버블 구독
-                .subscribe({
-                    token ->
+                .subscribe({ token ->
                     authTokenProvider.updateToken(token)
                     launchMainActivity()
-                }){
+                }) {
                     showError(it)
                 }
-        )
+
 //        showProgress()
 //
 //        accessTokenCall = api.getAccessToken(

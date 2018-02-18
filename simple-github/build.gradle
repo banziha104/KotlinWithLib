@@ -48,6 +48,7 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
     implementation "io.reactivex.rxjava2:rxjava:$rxJavaVersion"
     implementation "io.reactivex.rxjava2:rxandroid:$rxAndroidVersion"
+    implementation "com.jakewharton.rxbinding2:rxbinding-appcompat-v7-kotlin:$rxBindingVersion"
     implementation "com.squareup.retrofit2:adapter-rxjava2:$retrofitVersion"
     kapt "com.github.bumptech.glide:compiler:$glideVersion"
 }

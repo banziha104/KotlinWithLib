@@ -5,6 +5,7 @@ import android.support.v7.app.AppCompatActivity
 import android.view.View
 import com.androidhuman.example.simplegithub.R
 import com.androidhuman.example.simplegithub.api.provideGithubApi
+import com.androidhuman.example.simplegithub.extensions.plusAssign
 import com.androidhuman.example.simplegithub.ui.GlideApp
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
@@ -53,42 +54,41 @@ class RepositoryActivity : AppCompatActivity() {
     }
 
     private fun showRepositoryInfo(login: String, repoName: String) {
-        disposable.add(api.getRepository(login,repoName)
+        disposable += api.getRepository(login, repoName)
                 .observeOn(AndroidSchedulers.mainThread())
                 .doOnSubscribe { showProgress() }
-                .doOnError { hideProgress(false)}
+                .doOnError { hideProgress(false) }
                 .doOnComplete { hideProgress(true) }
-                .subscribe({
-                    repo ->
+                .subscribe({ repo ->
                     GlideApp.with(this@RepositoryActivity)
                             .load(repo.owner.avatarUrl)
                             .into(ivActivityRepositoryDescription)
 
                     tvActivityRepositoryName.text = repo.fullName
                     tvActivityRepositoryStars.text =
-                            resources.getQuantityString(R.plurals.star,repo.stars, repo.stars)
-                    if(null == repo.description){
+                            resources.getQuantityString(R.plurals.star, repo.stars, repo.stars)
+                    if (null == repo.description) {
                         tvActivityRepositoryDescription.setText(R.string.no_description_provided)
-                    }else{
+                    } else {
                         tvActivityRepositoryDescription.text = repo.description
                     }
 
-                    if(null == repo.language){
+                    if (null == repo.language) {
                         tvActivityRepositoryLanguage.setText(R.string.no_language_specified)
-                    }else{
+                    } else {
                         tvActivityRepositoryLanguage.text = repo.language
                     }
 
-                    try{
+                    try {
                         val lastUpdate = dateFormatInResponse.parse(repo.updatedAt)
                         tvActivityRepositoryLastUpdate.text = dateFormatToShow.format(lastUpdate)
-                    } catch (e : ParseException){
+                    } catch (e: ParseException) {
                         tvActivityRepositoryLastUpdate.text = repo.language
                     }
-                }){
+                }) {
                     showError(it.message)
                 }
-        )
+
 
 //        showProgress()
 //
