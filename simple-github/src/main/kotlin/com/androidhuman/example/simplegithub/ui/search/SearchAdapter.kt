@@ -29,7 +29,6 @@ class SearchAdapter : RecyclerView.Adapter<SearchAdapter.RepositoryHolder>() {
                         .load(repo.owner.avatarUrl)
                         .placeholder(placeholder)
                         .into(ivItemRepositoryProfile)
-
                 tvItemRepositoryName.text = repo.fullName
                 tvItemRepositoryLanguage.text = if (TextUtils.isEmpty(repo.language))
                     context.getText(R.string.no_language_specified)
