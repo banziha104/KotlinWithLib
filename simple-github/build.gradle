@@ -34,6 +34,10 @@ android {
 }
 
 dependencies {
+
+    implementation "android.arch.persistence.room:runtime:$archComponentVersion"
+    implementation "android.arch.persistence.room:rxjava2:$archComponentVersion"
+    implementation "android.arch.lifecycle:extensions:$archComponentVersion"
     implementation "com.android.support:appcompat-v7:$supportLibVersion"
     implementation "com.android.support:customtabs:$supportLibVersion"
     implementation "com.android.support:design:$supportLibVersion"
@@ -51,4 +55,9 @@ dependencies {
     implementation "com.jakewharton.rxbinding2:rxbinding-appcompat-v7-kotlin:$rxBindingVersion"
     implementation "com.squareup.retrofit2:adapter-rxjava2:$retrofitVersion"
     kapt "com.github.bumptech.glide:compiler:$glideVersion"
+    kapt "android.arch.lifecycle:compiler:$archComponentVersion"
+    kapt "android.arch.persistence.room:compiler:$archComponentVersion"
+
+    compile 'com.github.stfalcon:androidmvvmhelper:0.4'
+
 }

@@ -11,18 +11,16 @@ import android.view.inputmethod.InputMethodManager
 import com.androidhuman.example.simplegithub.R
 import com.androidhuman.example.simplegithub.api.GithubApi
 import com.androidhuman.example.simplegithub.api.model.GithubRepo
-import com.androidhuman.example.simplegithub.api.model.RepoSearchResponse
 import com.androidhuman.example.simplegithub.api.provideGithubApi
 import com.androidhuman.example.simplegithub.extensions.plusAssign
+import com.androidhuman.example.simplegithub.rx.AutoClearedDisposable
 import com.androidhuman.example.simplegithub.ui.repo.RepositoryActivity
 import com.jakewharton.rxbinding2.support.v7.widget.queryTextChangeEvents
-import com.jakewharton.rxbinding2.widget.RxSearchView
 import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
 import kotlinx.android.synthetic.main.activity_search.*
 import org.jetbrains.anko.startActivity
-import java.util.*
 
 class SearchActivity : AppCompatActivity(), SearchAdapter.ItemClickListener {
 
@@ -37,12 +35,15 @@ class SearchActivity : AppCompatActivity(), SearchAdapter.ItemClickListener {
     internal val api: GithubApi by lazy { provideGithubApi(this) }
 
     //    internal var searchCall: Call<RepoSearchResponse>? = null
-    internal var disposable = CompositeDisposable()
-    internal val viewDisposable = CompositeDisposable()
+    internal var disposable = AutoClearedDisposable(this)
+    internal val viewDisposable = AutoClearedDisposable(lifecycleOwner = this, alwaysClearOnStop = false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_search)
+
+        lifecycle += disposable
+        lifecycle += viewDisposable
 
         with(rvActivitySearchList) {
             layoutManager = LinearLayoutManager(this@SearchActivity)
@@ -82,15 +83,15 @@ class SearchActivity : AppCompatActivity(), SearchAdapter.ItemClickListener {
         return super.onOptionsItemSelected(item)
     }
 
-    override fun onStop() {
-        super.onStop()
-//        searchCall?.run { cancel() }
-        disposable.clear()
-        // 화면이 꺼지거나 다른 액티비티를 호출하여 액티비티가 화면에서 사리지는 경우에는 해제하지 않
-        if(isFinishing){
-            viewDisposable.clear()
-        }
-    }
+//    override fun onStop() {
+//        super.onStop()
+////        searchCall?.run { cancel() }
+//        disposable.clear()
+//        // 화면이 꺼지거나 다른 액티비티를 호출하여 액티비티가 화면에서 사리지는 경우에는 해제하지 않
+//        if(isFinishing){
+//            viewDisposable.clear()
+//        }
+//    }
 
     override fun onItemClick(repository: GithubRepo) {
         startActivity<RepositoryActivity>(

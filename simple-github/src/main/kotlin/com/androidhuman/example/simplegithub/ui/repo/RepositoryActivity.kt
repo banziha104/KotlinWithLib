@@ -6,6 +6,7 @@ import android.view.View
 import com.androidhuman.example.simplegithub.R
 import com.androidhuman.example.simplegithub.api.provideGithubApi
 import com.androidhuman.example.simplegithub.extensions.plusAssign
+import com.androidhuman.example.simplegithub.rx.AutoClearedDisposable
 import com.androidhuman.example.simplegithub.ui.GlideApp
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
@@ -27,7 +28,7 @@ class RepositoryActivity : AppCompatActivity() {
 
 //    internal var repoCall: Call<GithubRepo>? = null
 
-    internal val disposable = CompositeDisposable()
+    internal val disposable = AutoClearedDisposable(this)
 
     internal val dateFormatInResponse = SimpleDateFormat(
             "yyyy-MM-dd'T'HH:mm:ssX", Locale.getDefault())
@@ -38,7 +39,7 @@ class RepositoryActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_repository)
-
+        lifecycle += disposable
         val login = intent.getStringExtra(KEY_USER_LOGIN) ?: throw IllegalArgumentException(
                 "No login info exists in extras")
         val repo = intent.getStringExtra(KEY_REPO_NAME) ?: throw IllegalArgumentException(
@@ -47,11 +48,11 @@ class RepositoryActivity : AppCompatActivity() {
         showRepositoryInfo(login, repo)
     }
 
-    override fun onStop() {
-        super.onStop()
-//        repoCall?.run { cancel() }
-        disposable.clear()
-    }
+//    override fun onStop() {
+//        super.onStop()
+////        repoCall?.run { cancel() }
+//        disposable.clear()
+//    }
 
     private fun showRepositoryInfo(login: String, repoName: String) {
         disposable += api.getRepository(login, repoName)

@@ -8,21 +8,17 @@ import android.support.v7.app.AppCompatActivity
 import android.view.View
 import com.androidhuman.example.simplegithub.BuildConfig
 import com.androidhuman.example.simplegithub.R
-import com.androidhuman.example.simplegithub.api.model.GithubAccessToken
 import com.androidhuman.example.simplegithub.api.provideAuthApi
 import com.androidhuman.example.simplegithub.data.AuthTokenProvider
 import com.androidhuman.example.simplegithub.extensions.plusAssign
+import com.androidhuman.example.simplegithub.rx.AutoClearedDisposable
 import com.androidhuman.example.simplegithub.ui.main.MainActivity
 import io.reactivex.android.schedulers.AndroidSchedulers
-import io.reactivex.disposables.CompositeDisposable
 import kotlinx.android.synthetic.main.activity_sign_in.*
 import org.jetbrains.anko.clearTask
 import org.jetbrains.anko.intentFor
 import org.jetbrains.anko.longToast
 import org.jetbrains.anko.newTask
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
 
 class SignInActivity : AppCompatActivity() {
 
@@ -31,12 +27,12 @@ class SignInActivity : AppCompatActivity() {
 
     internal val authTokenProvider by lazy { AuthTokenProvider(this) }
 
-    internal val disposable = CompositeDisposable()
+    internal val disposable = AutoClearedDisposable(this)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_sign_in)
-
+        lifecycle += disposable
         btnActivitySignInStart.setOnClickListener {
             val authUri = Uri.Builder().scheme("https").authority("github.com")
                     .appendPath("login")
@@ -65,12 +61,12 @@ class SignInActivity : AppCompatActivity() {
         getAccessToken(code)
     }
 
-    override fun onStop() {
-        super.onStop()
-//        accessTokenCall?.run { cancel() }
-        // 관리하고 있던 모든 객체를 해제
-        disposable.clear()
-    }
+//    override fun onStop() {
+//        super.onStop()
+////        accessTokenCall?.run { cancel() }
+//        // 관리하고 있던 모든 객체를 해제
+//        disposable.clear()
+//    }
 
     private fun getAccessToken(code: String) {
         // disposable에 등록
