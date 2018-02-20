@@ -1,6 +1,5 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-android-extensions'
 apply plugin: 'kotlin-kapt'
 
 android {
@@ -34,10 +33,6 @@ android {
 }
 
 dependencies {
-
-    implementation "android.arch.persistence.room:runtime:$archComponentVersion"
-    implementation "android.arch.persistence.room:rxjava2:$archComponentVersion"
-    implementation "android.arch.lifecycle:extensions:$archComponentVersion"
     implementation "com.android.support:appcompat-v7:$supportLibVersion"
     implementation "com.android.support:customtabs:$supportLibVersion"
     implementation "com.android.support:design:$supportLibVersion"
@@ -48,16 +43,7 @@ dependencies {
     implementation "com.squareup.okhttp3:okhttp:$okHttpVersion"
     implementation "com.squareup.retrofit2:converter-gson:$retrofitVersion"
     implementation "com.squareup.retrofit2:retrofit:$retrofitVersion"
-    implementation "org.jetbrains.anko:anko-commons:$ankoVersion"
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
-    implementation "io.reactivex.rxjava2:rxjava:$rxJavaVersion"
-    implementation "io.reactivex.rxjava2:rxandroid:$rxAndroidVersion"
-    implementation "com.jakewharton.rxbinding2:rxbinding-appcompat-v7-kotlin:$rxBindingVersion"
-    implementation "com.squareup.retrofit2:adapter-rxjava2:$retrofitVersion"
+
     kapt "com.github.bumptech.glide:compiler:$glideVersion"
-    kapt "android.arch.lifecycle:compiler:$archComponentVersion"
-    kapt "android.arch.persistence.room:compiler:$archComponentVersion"
-
-    compile 'com.github.stfalcon:androidmvvmhelper:0.4'
-
 }

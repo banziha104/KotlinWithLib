@@ -1,78 +1,79 @@
 package com.androidhuman.example.simplegithub.ui.search
 
+import android.content.Intent
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.LinearLayoutManager
+import android.support.v7.widget.RecyclerView
 import android.support.v7.widget.SearchView
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.inputmethod.InputMethodManager
+import android.widget.ProgressBar
+import android.widget.TextView
 import com.androidhuman.example.simplegithub.R
 import com.androidhuman.example.simplegithub.api.GithubApi
+import com.androidhuman.example.simplegithub.api.GithubApiProvider
 import com.androidhuman.example.simplegithub.api.model.GithubRepo
-import com.androidhuman.example.simplegithub.api.provideGithubApi
-import com.androidhuman.example.simplegithub.data.provideSearchHistoryDao
-import com.androidhuman.example.simplegithub.extensions.plusAssign
-import com.androidhuman.example.simplegithub.rx.AutoClearedDisposable
+import com.androidhuman.example.simplegithub.api.model.RepoSearchResponse
 import com.androidhuman.example.simplegithub.ui.repo.RepositoryActivity
-import com.jakewharton.rxbinding2.support.v7.widget.queryTextChangeEvents
-import io.reactivex.Completable
-import io.reactivex.Observable
-import io.reactivex.Scheduler
-import io.reactivex.android.schedulers.AndroidSchedulers
-import io.reactivex.disposables.CompositeDisposable
-import io.reactivex.schedulers.Schedulers
-import kotlinx.android.synthetic.main.activity_search.*
-import org.jetbrains.anko.startActivity
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 class SearchActivity : AppCompatActivity(), SearchAdapter.ItemClickListener {
+
+    internal lateinit var rvList: RecyclerView
+
+    internal lateinit var progress: ProgressBar
+
+    internal lateinit var tvMessage: TextView
 
     internal lateinit var menuSearch: MenuItem
 
     internal lateinit var searchView: SearchView
 
-    internal val adapter by lazy {
-        SearchAdapter().apply { setItemClickListener(this@SearchActivity) }
-    }
-    internal val searchHistoryDao by lazy { provideSearchHistoryDao(this) }
-    internal val api: GithubApi by lazy { provideGithubApi(this) }
+    internal lateinit var adapter: SearchAdapter
 
-    //    internal var searchCall: Call<RepoSearchResponse>? = null
-    internal var disposable = AutoClearedDisposable(this)
-    internal val viewDisposable = AutoClearedDisposable(lifecycleOwner = this, alwaysClearOnStop = false)
+    internal lateinit var api: GithubApi
+
+    internal lateinit var searchCall: Call<RepoSearchResponse>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_search)
 
-        lifecycle += disposable
-        lifecycle += viewDisposable
+        rvList = findViewById(R.id.rvActivitySearchList)
+        progress = findViewById(R.id.pbActivitySearch)
+        tvMessage = findViewById(R.id.tvActivitySearchMessage)
 
-        with(rvActivitySearchList) {
-            layoutManager = LinearLayoutManager(this@SearchActivity)
-            adapter = this@SearchActivity.adapter
-        }
+        adapter = SearchAdapter()
+        adapter.setItemClickListener(this)
+        rvList.layoutManager = LinearLayoutManager(this)
+        rvList.adapter = adapter
+
+        api = GithubApiProvider.provideGithubApi(this)
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.menu_activity_search, menu)
-
         menuSearch = menu.findItem(R.id.menu_activity_search_query)
-        searchView = (menuSearch.actionView as SearchView)
 
-        viewDisposable += searchView.queryTextChangeEvents()
-                .filter { it.isSubmitted }
-                .map { it.queryText() }
-                .filter { it.isNotEmpty() }
-                .map { it.toString() }
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe { query ->
-                    updateTitle(query)
-                    hideSoftKeyboard()
-                    collapseSearchView()
-                    searchRepository(query)
-                }
+        searchView = menuSearch.actionView as SearchView
+        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String): Boolean {
+                updateTitle(query)
+                hideSoftKeyboard()
+                collapseSearchView()
+                searchRepository(query)
+                return true
+            }
+
+            override fun onQueryTextChange(newText: String): Boolean {
+                return false
+            }
+        })
 
         menuSearch.expandActionView()
 
@@ -87,91 +88,54 @@ class SearchActivity : AppCompatActivity(), SearchAdapter.ItemClickListener {
         return super.onOptionsItemSelected(item)
     }
 
-//    override fun onStop() {
-//        super.onStop()
-////        searchCall?.run { cancel() }
-//        disposable.clear()
-//        // 화면이 꺼지거나 다른 액티비티를 호출하여 액티비티가 화면에서 사리지는 경우에는 해제하지 않
-//        if(isFinishing){
-//            viewDisposable.clear()
-//        }
-//    }
-
     override fun onItemClick(repository: GithubRepo) {
-        disposable += Completable.fromCallable { searchHistoryDao.add(repository) }
-                .subscribeOn(Schedulers.io())
-                .subscribe()
-
-        startActivity<RepositoryActivity>(
-                RepositoryActivity.KEY_USER_LOGIN to repository.owner.login,
-                RepositoryActivity.KEY_REPO_NAME to repository.name)
+        val intent = Intent(this, RepositoryActivity::class.java)
+        intent.putExtra(RepositoryActivity.KEY_USER_LOGIN, repository.owner.login)
+        intent.putExtra(RepositoryActivity.KEY_REPO_NAME, repository.name)
+        startActivity(intent)
     }
 
     private fun searchRepository(query: String) {
-        disposable += api.searchRepository(query)
-                .flatMap {
-                    if (0 == it.totalCount) {
-                        Observable.error(IllegalStateException("No search"))
-                    } else {
-                        Observable.just(it.items)
-                    }
-                }
-                .observeOn(AndroidSchedulers.mainThread())
-                .doOnSubscribe {
-                    showProgress()
-                    hideError()
-                    showProgress()
-                }
-                .doOnTerminate { hideProgress() }
-                .subscribe({ items ->
-                    with(adapter) {
-                        setItems(items)
-                        notifyDataSetChanged()
-                    }
-                }) {
-                    showError(it.message)
-                }
+        clearResults()
+        hideError()
+        showProgress()
 
-//        clearResults()
-//        hideError()
-//        showProgress()
-//
-//        searchCall = api.searchRepository(query)
-//        searchCall!!.enqueue(object : Callback<RepoSearchResponse> {
-//            override fun onResponse(call: Call<RepoSearchResponse>,
-//                    response: Response<RepoSearchResponse>) {
-//                hideProgress()
-//
-//                val searchResult = response.body()
-//                if (response.isSuccessful && null != searchResult) {
-//                    with(adapter) {
-//                        setItems(searchResult.items)
-//                        notifyDataSetChanged()
-//                    }
-//
-//                    if (0 == searchResult.totalCount) {
-//                        showError(getString(R.string.no_search_result))
-//                    }
-//                } else {
-//                    showError("Not successful: " + response.message())
-//                }
-//            }
-//
-//            override fun onFailure(call: Call<RepoSearchResponse>, t: Throwable) {
-//                hideProgress()
-//                showError(t.message)
-//            }
-//        })
+        searchCall = api.searchRepository(query)
+        searchCall.enqueue(object : Callback<RepoSearchResponse> {
+            override fun onResponse(call: Call<RepoSearchResponse>,
+                    response: Response<RepoSearchResponse>) {
+                hideProgress()
+
+                val searchResult = response.body()
+                if (response.isSuccessful && null != searchResult) {
+                    adapter.setItems(searchResult.items)
+                    adapter.notifyDataSetChanged()
+
+                    if (0 == searchResult.totalCount) {
+                        showError(getString(R.string.no_search_result))
+                    }
+                } else {
+                    showError("Not successful: " + response.message())
+                }
+            }
+
+            override fun onFailure(call: Call<RepoSearchResponse>, t: Throwable) {
+                hideProgress()
+                showError(t.message)
+            }
+        })
     }
 
     private fun updateTitle(query: String) {
-        supportActionBar?.run { subtitle = query }
+        val ab = supportActionBar
+        if (null != ab) {
+            ab.subtitle = query
+        }
     }
 
     private fun hideSoftKeyboard() {
-        (getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager).run {
-            hideSoftInputFromWindow(searchView.windowToken, 0)
-        }
+        val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.hideSoftInputFromWindow(searchView.windowToken, 0)
     }
 
     private fun collapseSearchView() {
@@ -179,31 +143,25 @@ class SearchActivity : AppCompatActivity(), SearchAdapter.ItemClickListener {
     }
 
     private fun clearResults() {
-        with(adapter) {
-            clearItems()
-            notifyDataSetChanged()
-        }
+        adapter.clearItems()
+        adapter.notifyDataSetChanged()
     }
 
     private fun showProgress() {
-        pbActivitySearch.visibility = View.VISIBLE
+        progress.visibility = View.VISIBLE
     }
 
     private fun hideProgress() {
-        pbActivitySearch.visibility = View.GONE
+        progress.visibility = View.GONE
     }
 
     private fun showError(message: String?) {
-        with(tvActivitySearchMessage) {
-            text = message ?: "Unexpected error."
-            visibility = View.VISIBLE
-        }
+        tvMessage.text = message ?: "Unexpected error."
+        tvMessage.visibility = View.VISIBLE
     }
 
     private fun hideError() {
-        with(tvActivitySearchMessage) {
-            text = ""
-            visibility = View.GONE
-        }
+        tvMessage.text = ""
+        tvMessage.visibility = View.GONE
     }
 }
