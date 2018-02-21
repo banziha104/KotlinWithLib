@@ -6,40 +6,35 @@ import android.os.Bundle
 import android.support.customtabs.CustomTabsIntent
 import android.support.v7.app.AppCompatActivity
 import android.view.View
-import android.widget.Button
-import android.widget.ProgressBar
-import android.widget.Toast
 import com.androidhuman.example.simplegithub.BuildConfig
 import com.androidhuman.example.simplegithub.R
-import com.androidhuman.example.simplegithub.api.AuthApi
-import com.androidhuman.example.simplegithub.api.GithubApiProvider
-import com.androidhuman.example.simplegithub.api.model.GithubAccessToken
+import com.androidhuman.example.simplegithub.api.provideAuthApi
 import com.androidhuman.example.simplegithub.data.AuthTokenProvider
+import com.androidhuman.example.simplegithub.extensions.plusAssign
+import com.androidhuman.example.simplegithub.rx.AutoClearedDisposable
 import com.androidhuman.example.simplegithub.ui.main.MainActivity
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
+import io.reactivex.android.schedulers.AndroidSchedulers
+import kotlinx.android.synthetic.main.activity_sign_in.*
+import org.jetbrains.anko.clearTask
+import org.jetbrains.anko.intentFor
+import org.jetbrains.anko.longToast
+import org.jetbrains.anko.newTask
 
 class SignInActivity : AppCompatActivity() {
 
-    internal lateinit var btnStart: Button
+    internal val api by lazy { provideAuthApi() }
 
-    internal lateinit var progress: ProgressBar
+    internal val authTokenProvider by lazy { AuthTokenProvider(this) }
 
-    internal lateinit var api: AuthApi
-
-    internal lateinit var authTokenProvider: AuthTokenProvider
-
-    internal lateinit var accessTokenCall: Call<GithubAccessToken>
+    internal val disposables = AutoClearedDisposable(this)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_sign_in)
 
-        btnStart = findViewById(R.id.btnActivitySignInStart)
-        progress = findViewById(R.id.pbActivitySignIn)
+        lifecycle += disposables
 
-        btnStart.setOnClickListener {
+        btnActivitySignInStart.setOnClickListener {
             val authUri = Uri.Builder().scheme("https").authority("github.com")
                     .appendPath("login")
                     .appendPath("oauth")
@@ -51,9 +46,6 @@ class SignInActivity : AppCompatActivity() {
             intent.launchUrl(this@SignInActivity, authUri)
         }
 
-        api = GithubApiProvider.provideAuthApi()
-        authTokenProvider = AuthTokenProvider(this)
-
         if (null != authTokenProvider.token) {
             launchMainActivity()
         }
@@ -64,61 +56,42 @@ class SignInActivity : AppCompatActivity() {
 
         showProgress()
 
-        val uri = intent.data ?: throw IllegalArgumentException("No data exists")
-
-        val code = uri.getQueryParameter("code")
+        val code = intent.data?.getQueryParameter("code")
                 ?: throw IllegalStateException("No code exists")
 
         getAccessToken(code)
     }
 
     private fun getAccessToken(code: String) {
-        showProgress()
-
-        accessTokenCall = api.getAccessToken(
+        disposables += api.getAccessToken(
                 BuildConfig.GITHUB_CLIENT_ID, BuildConfig.GITHUB_CLIENT_SECRET, code)
-
-        accessTokenCall.enqueue(object : Callback<GithubAccessToken> {
-            override fun onResponse(call: Call<GithubAccessToken>,
-                    response: Response<GithubAccessToken>) {
-                hideProgress()
-
-                val token = response.body()
-                if (response.isSuccessful && null != token) {
-                    authTokenProvider.updateToken(token.accessToken)
-
+                .map { it.accessToken }
+                .observeOn(AndroidSchedulers.mainThread())
+                .doOnSubscribe { showProgress() }
+                .doOnTerminate { hideProgress() }
+                .subscribe({ token ->
+                    authTokenProvider.updateToken(token)
                     launchMainActivity()
-                } else {
-                    showError(IllegalStateException(
-                            "Not successful: " + response.message()))
+                }) {
+                    showError(it)
                 }
-            }
-
-            override fun onFailure(call: Call<GithubAccessToken>, t: Throwable) {
-                hideProgress()
-                showError(t)
-            }
-        })
     }
 
     private fun showProgress() {
-        btnStart.visibility = View.GONE
-        progress.visibility = View.VISIBLE
+        btnActivitySignInStart.visibility = View.GONE
+        pbActivitySignIn.visibility = View.VISIBLE
     }
 
     private fun hideProgress() {
-        btnStart.visibility = View.VISIBLE
-        progress.visibility = View.GONE
+        btnActivitySignInStart.visibility = View.VISIBLE
+        pbActivitySignIn.visibility = View.GONE
     }
 
     private fun showError(throwable: Throwable) {
-        Toast.makeText(this, throwable.message, Toast.LENGTH_LONG).show()
+        longToast(throwable.message ?: "No message available")
     }
 
     private fun launchMainActivity() {
-        startActivity(Intent(
-                this@SignInActivity, MainActivity::class.java)
-                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        startActivity(intentFor<MainActivity>().clearTask().newTask())
     }
 }
