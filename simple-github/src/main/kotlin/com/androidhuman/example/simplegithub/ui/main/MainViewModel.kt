@@ -1,4 +1,3 @@
-
 package com.androidhuman.example.simplegithub.ui.main
 
 import android.arch.lifecycle.ViewModel

@@ -1,9 +1,5 @@
 package com.androidhuman.example.simplegithub.util
 
-/**
- * Created by iyeongjun on 2018. 2. 21..
- */
-
 sealed class SupportOptional<out T : Any>(private val _value: T?) {
 
     val isEmpty: Boolean

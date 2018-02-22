@@ -5,12 +5,13 @@ import android.arch.lifecycle.ViewModelProvider
 import com.androidhuman.example.simplegithub.api.AuthApi
 import com.androidhuman.example.simplegithub.data.AuthTokenProvider
 
-/**
- * Created by iyeongjun on 2018. 2. 21..
- */
-class SignInViewModelFactory(val api : AuthApi, val authTokenProvider: AuthTokenProvider) : ViewModelProvider.Factory {
-    override fun <T : ViewModel?> create(modelClass: Class<T>): T {
+class SignInViewModelFactory(
+        val api: AuthApi,
+        val authTokenProvider: AuthTokenProvider)
+    : ViewModelProvider.Factory {
+
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
         @Suppress("UNCHECKED_CAST")
-        return SignInViewModel(api,authTokenProvider) as T
+        return SignInViewModel(api, authTokenProvider) as T
     }
 }

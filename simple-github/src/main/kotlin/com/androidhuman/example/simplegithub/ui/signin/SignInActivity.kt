@@ -1,6 +1,5 @@
 package com.androidhuman.example.simplegithub.ui.signin
 
-import android.arch.lifecycle.ViewModelProvider
 import android.arch.lifecycle.ViewModelProviders
 import android.content.Intent
 import android.net.Uri
@@ -24,46 +23,27 @@ import org.jetbrains.anko.newTask
 
 class SignInActivity : AppCompatActivity() {
 
-    internal val api by lazy { provideAuthApi() }
-
-    internal val authTokenProvider by lazy { AuthTokenProvider(this) }
-
     internal val disposables = AutoClearedDisposable(this)
 
-    val viewDisposables = AutoClearedDisposable(lifecycleOwner = this, alwaysClearOnStop = false)
+    internal val viewDisposables
+            = AutoClearedDisposable(lifecycleOwner = this, alwaysClearOnStop = false)
 
-    val viewModelFactory by lazy{
+    internal val viewModelFactory by lazy {
         SignInViewModelFactory(provideAuthApi(), AuthTokenProvider(this))
     }
 
-    lateinit var viewModel : SignInViewModel
+    lateinit var viewModel: SignInViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_sign_in)
+
+        viewModel = ViewModelProviders.of(
+                this, viewModelFactory)[SignInViewModel::class.java]
+
         lifecycle += disposables
         lifecycle += viewDisposables
-        viewModel = ViewModelProviders.of(this, viewModelFactory)[SignInViewModel::class.java]
-        viewDisposables += viewModel.accessToken
-                .filter{!it.isEmpty}
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe { launchMainActivity() }
 
-        viewDisposables += viewModel.message
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe { message -> showError(message)}
-
-        viewDisposables += viewModel.isLoading
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe{
-                    isLoading ->
-                    if (isLoading){
-                        showProgress()
-                    }else{
-                        hideProgress()
-                    }
-                }
-        disposables += viewModel.loadAccessToken()
         btnActivitySignInStart.setOnClickListener {
             val authUri = Uri.Builder().scheme("https").authority("github.com")
                     .appendPath("login")
@@ -76,9 +56,26 @@ class SignInActivity : AppCompatActivity() {
             intent.launchUrl(this@SignInActivity, authUri)
         }
 
-        if (null != authTokenProvider.token) {
-            launchMainActivity()
-        }
+        viewDisposables += viewModel.accessToken
+                .filter { !it.isEmpty }
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe { launchMainActivity() }
+
+        viewDisposables += viewModel.message
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe { message -> showError(message) }
+
+        viewDisposables += viewModel.isLoading
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe { isLoading ->
+                    if (isLoading) {
+                        showProgress()
+                    } else {
+                        hideProgress()
+                    }
+                }
+
+        disposables += viewModel.loadAccessToken()
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -94,10 +91,7 @@ class SignInActivity : AppCompatActivity() {
 
     private fun getAccessToken(code: String) {
         disposables += viewModel.requestAccessToken(
-                BuildConfig.GITHUB_CLIENT_ID,
-                BuildConfig.GITHUB_CLIENT_SECRET,
-                code
-        )
+                BuildConfig.GITHUB_CLIENT_ID, BuildConfig.GITHUB_CLIENT_SECRET, code)
     }
 
     private fun showProgress() {
