@@ -9,6 +9,7 @@ import android.view.MenuItem
 import android.view.View
 import com.androidhuman.example.simplegithub.R
 import com.androidhuman.example.simplegithub.api.model.GithubRepo
+import com.androidhuman.example.simplegithub.data.SearchHistoryDao
 import com.androidhuman.example.simplegithub.data.provideSearchHistoryDao
 import com.androidhuman.example.simplegithub.extensions.plusAssign
 import com.androidhuman.example.simplegithub.rx.AutoActivatedDisposable
@@ -20,6 +21,7 @@ import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.activity_main.*
 import org.jetbrains.anko.startActivity
+import javax.inject.Inject
 
 class MainActivity : AppCompatActivity(), SearchAdapter.ItemClickListener {
 
@@ -33,7 +35,9 @@ class MainActivity : AppCompatActivity(), SearchAdapter.ItemClickListener {
             = AutoClearedDisposable(lifecycleOwner = this, alwaysClearOnStop = false)
 
     internal val viewModelFactory
-            by lazy { MainViewModelFactory(provideSearchHistoryDao(this)) }
+            by lazy { MainViewModelFactory(searchHistoryDao) }
+    @Inject lateinit var searchHistoryDao : SearchHistoryDao
+
 
     lateinit var viewModel: MainViewModel
 

@@ -5,15 +5,17 @@ import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.view.View
 import com.androidhuman.example.simplegithub.R
+import com.androidhuman.example.simplegithub.api.GithubApi
 import com.androidhuman.example.simplegithub.api.provideGithubApi
 import com.androidhuman.example.simplegithub.extensions.plusAssign
 import com.androidhuman.example.simplegithub.rx.AutoClearedDisposable
-import com.androidhuman.example.simplegithub.ui.GlideApp
+import com.bumptech.glide.Glide
 import io.reactivex.android.schedulers.AndroidSchedulers
 import kotlinx.android.synthetic.main.activity_repository.*
 import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.Locale
+import javax.inject.Inject
 
 class RepositoryActivity : AppCompatActivity() {
 
@@ -30,8 +32,10 @@ class RepositoryActivity : AppCompatActivity() {
             = AutoClearedDisposable(lifecycleOwner = this, alwaysClearOnStop = false)
 
     internal val viewModelFactory by lazy {
-        RepositoryViewModelFactory(provideGithubApi(this))
+        RepositoryViewModelFactory(githubApi)
     }
+
+    @Inject lateinit var githubApi : GithubApi
 
     lateinit var viewModel: RepositoryViewModel
 
@@ -56,7 +60,7 @@ class RepositoryActivity : AppCompatActivity() {
                 .map { it.value }
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe { repository ->
-                    GlideApp.with(this@RepositoryActivity)
+                    Glide.with(this@RepositoryActivity)
                             .load(repository.owner.avatarUrl)
                             .into(ivActivityRepositoryProfile)
 

@@ -10,8 +10,10 @@ import android.view.MenuItem
 import android.view.View
 import android.view.inputmethod.InputMethodManager
 import com.androidhuman.example.simplegithub.R
+import com.androidhuman.example.simplegithub.api.GithubApi
 import com.androidhuman.example.simplegithub.api.model.GithubRepo
 import com.androidhuman.example.simplegithub.api.provideGithubApi
+import com.androidhuman.example.simplegithub.data.SearchHistoryDao
 import com.androidhuman.example.simplegithub.data.provideSearchHistoryDao
 import com.androidhuman.example.simplegithub.extensions.plusAssign
 import com.androidhuman.example.simplegithub.rx.AutoClearedDisposable
@@ -20,6 +22,7 @@ import com.jakewharton.rxbinding2.support.v7.widget.queryTextChangeEvents
 import io.reactivex.android.schedulers.AndroidSchedulers
 import kotlinx.android.synthetic.main.activity_search.*
 import org.jetbrains.anko.startActivity
+import javax.inject.Inject
 
 class SearchActivity : AppCompatActivity(), SearchAdapter.ItemClickListener {
 
@@ -37,10 +40,12 @@ class SearchActivity : AppCompatActivity(), SearchAdapter.ItemClickListener {
             = AutoClearedDisposable(lifecycleOwner = this, alwaysClearOnStop = false)
 
     internal val viewModelFactory by lazy {
-        SearchViewModelFactory(
-                provideGithubApi(this),
-                provideSearchHistoryDao(this))
+        SearchViewModelFactory(githubApi, searchHistoryDao)
     }
+
+    @Inject lateinit var githubApi : GithubApi
+    @Inject lateinit var searchHistoryDao : SearchHistoryDao
+
 
     lateinit var viewModel: SearchViewModel
 
