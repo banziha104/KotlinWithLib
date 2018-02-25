@@ -13,17 +13,15 @@ import retrofit2.converter.gson.GsonConverterFactory
 import javax.inject.Named
 import javax.inject.Singleton
 
-/**
- * Created by iyeongjun on 2018. 2. 22..
- */
-
 @Module
 class ApiModule {
+
     @Provides
     @Singleton
-    fun provideAuthApi(@Named("unauthorized")okHttpClient: OkHttpClient,
-                       callAdapter: CallAdapter.Factory,
-                       converter: Converter.Factory): AuthApi
+    fun provideAuthApi(
+            @Named("unauthorized") okHttpClient: OkHttpClient,
+            callAdapter: CallAdapter.Factory,
+            converter: Converter.Factory): AuthApi
             = Retrofit.Builder()
             .baseUrl("https://github.com")
             .client(okHttpClient)
@@ -34,9 +32,10 @@ class ApiModule {
 
     @Provides
     @Singleton
-    fun provideGithubApi(@Named("authorized")okHttpClient: OkHttpClient,
-                         callAdapter: CallAdapter.Factory,
-                         converter: Converter.Factory): GithubApi
+    fun provideGithubApi(
+            @Named("authorized") okHttpClient: OkHttpClient,
+            callAdapter: CallAdapter.Factory,
+            converter: Converter.Factory): GithubApi
             = Retrofit.Builder()
             .baseUrl("https://api.github.com")
             .client(okHttpClient)
@@ -47,11 +46,11 @@ class ApiModule {
 
     @Provides
     @Singleton
-    fun provideCallAdapterFactory() : CallAdapter.Factory = RxJava2CallAdapterFactory.createAsync()
+    fun provideCallAdapterFactory(): CallAdapter.Factory
+            = RxJava2CallAdapterFactory.createAsync()
 
     @Provides
     @Singleton
-    fun provideConverterFactroy() : Converter.Factory = GsonConverterFactory.create()
-
-
+    fun provideConverterFactory(): Converter.Factory
+            = GsonConverterFactory.create()
 }

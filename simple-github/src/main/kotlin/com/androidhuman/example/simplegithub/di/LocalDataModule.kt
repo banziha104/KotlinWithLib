@@ -1,8 +1,5 @@
 package com.androidhuman.example.simplegithub.di
 
-/**
- * Created by iyeongjun on 2018. 2. 22..
- */
 import android.arch.persistence.room.Room
 import android.content.Context
 import com.androidhuman.example.simplegithub.data.AuthTokenProvider

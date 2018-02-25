@@ -1,7 +1,6 @@
 package com.androidhuman.example.simplegithub.di
 
 import com.androidhuman.example.simplegithub.api.AuthInterceptor
-import com.androidhuman.example.simplegithub.api.AuthInterceptor2
 import com.androidhuman.example.simplegithub.data.AuthTokenProvider
 import dagger.Module
 import dagger.Provides
@@ -10,12 +9,9 @@ import okhttp3.logging.HttpLoggingInterceptor
 import javax.inject.Named
 import javax.inject.Singleton
 
-/**
- * Created by iyeongjun on 2018. 2. 22..
- */
-
 @Module
-class NetworkModule{
+class NetworkModule {
+
     @Provides
     @Named("unauthorized")
     @Singleton
@@ -29,7 +25,7 @@ class NetworkModule{
     @Singleton
     fun provideAuthorizedOkHttpClient(
             loggingInterceptor: HttpLoggingInterceptor,
-            authInterceptor: AuthInterceptor2): OkHttpClient
+            authInterceptor: AuthInterceptor): OkHttpClient
             = OkHttpClient.Builder()
             .addInterceptor(authInterceptor)
             .addInterceptor(loggingInterceptor)
@@ -42,8 +38,8 @@ class NetworkModule{
 
     @Provides
     @Singleton
-    fun provideAuthInterceptor(provider: AuthTokenProvider): AuthInterceptor2 {
+    fun provideAuthInterceptor(provider: AuthTokenProvider): AuthInterceptor {
         val token = provider.token ?: throw IllegalStateException("authToken cannot be null")
-        return AuthInterceptor2(token)
+        return AuthInterceptor(token)
     }
 }

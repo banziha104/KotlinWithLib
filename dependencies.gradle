@@ -11,11 +11,11 @@ ext {
     // Library
     ankoVersion = '0.10.3'
     archComponentVersion = '1.0.0'
+    daggerVersion = '2.12'
     glideVersion = '4.1.1'
     gsonVersion = '2.7'
     kotlinVersion = '1.2.0'
     okHttpVersion = '3.8.1'
-    daggerVersion = '2.12'
     retrofitVersion = '2.3.0'
     rxAndroidVersion = '2.0.1'
     rxBindingVersion = '2.0.0'
